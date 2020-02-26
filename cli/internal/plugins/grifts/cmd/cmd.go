@@ -29,3 +29,5 @@ func (Cmd) CmdAliases() []string {
 func (cmd *Cmd) Main(ctx context.Context, root string, args []string) error {
 	return grifts.Run("buffalo grifts", args)
 }
+
+func (Cmd) NeedsBuffaloApp() {}

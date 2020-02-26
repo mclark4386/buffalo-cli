@@ -1,8 +1,6 @@
-package soda
+package newapp
 
-import (
-	"github.com/gobuffalo/plugins"
-)
+import "github.com/gobuffalo/plugins"
 
 func Plugins() []plugins.Plugin {
 	return []plugins.Plugin{

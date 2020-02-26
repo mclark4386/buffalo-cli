@@ -37,39 +37,79 @@ type Buffalo struct {
 	plugins.Plugins
 }
 
+func insidePlugins(root string) []plugins.Plugin {
+	var plugs []plugins.Plugin
+
+	plugs = append(plugs, cmds.InsidePlugins()...)
+	plugs = append(plugs, clifix.Plugins()...)
+	plugs = append(plugs, fizz.Plugins()...)
+	plugs = append(plugs, flect.Plugins()...)
+	plugs = append(plugs, golang.Plugins()...)
+	plugs = append(plugs, grifts.Plugins()...)
+	plugs = append(plugs, i18n.Plugins()...)
+	plugs = append(plugs, mail.Plugins()...)
+	plugs = append(plugs, packr.Plugins()...)
+	plugs = append(plugs, pkger.Plugins()...)
+	plugs = append(plugs, plush.Plugins()...)
+	plugs = append(plugs, pop.Plugins()...)
+	plugs = append(plugs, refresh.Plugins()...)
+	plugs = append(plugs, soda.Plugins()...)
+
+	if _, err := os.Stat(filepath.Join(root, "package.json")); err == nil {
+		plugs = append(plugs, webpack.Plugins()...)
+	}
+
+	if _, err := os.Stat(filepath.Join(root, ".git")); err == nil {
+		plugs = append(plugs, git.Plugins()...)
+	}
+
+	if _, err := os.Stat(filepath.Join(root, ".bzr")); err == nil {
+		plugs = append(plugs, bzr.Plugins()...)
+	}
+	return plugs
+}
+
+func outsidePlugins(root string) []plugins.Plugin {
+	var plugs []plugins.Plugin
+	plugs = append(plugs, cmds.OutsidePlugins()...)
+	return plugs
+}
+
 func NewFromRoot(root string) (*Buffalo, error) {
 	b := &Buffalo{}
+
+	isBuffalo := IsBuffalo(root)
 
 	pfn := func() []plugins.Plugin {
 		return b.Plugins
 	}
 
-	b.Plugins = append(b.Plugins, clifix.Plugins()...)
-	b.Plugins = append(b.Plugins, cmds.Plugins()...)
-	b.Plugins = append(b.Plugins, fizz.Plugins()...)
-	b.Plugins = append(b.Plugins, flect.Plugins()...)
-	b.Plugins = append(b.Plugins, golang.Plugins()...)
-	b.Plugins = append(b.Plugins, grifts.Plugins()...)
-	b.Plugins = append(b.Plugins, i18n.Plugins()...)
-	b.Plugins = append(b.Plugins, mail.Plugins()...)
-	b.Plugins = append(b.Plugins, packr.Plugins()...)
-	b.Plugins = append(b.Plugins, pkger.Plugins()...)
-	b.Plugins = append(b.Plugins, plush.Plugins()...)
-	b.Plugins = append(b.Plugins, pop.Plugins()...)
-	b.Plugins = append(b.Plugins, refresh.Plugins()...)
-	b.Plugins = append(b.Plugins, soda.Plugins()...)
-
-	if _, err := os.Stat(filepath.Join(root, "package.json")); err == nil {
-		b.Plugins = append(b.Plugins, webpack.Plugins()...)
+	if isBuffalo {
+		b.Plugins = append(b.Plugins, insidePlugins(root)...)
+	} else {
+		b.Plugins = append(b.Plugins, outsidePlugins(root)...)
 	}
 
-	if _, err := os.Stat(filepath.Join(root, ".git")); err == nil {
-		b.Plugins = append(b.Plugins, git.Plugins()...)
+	plugs := make([]plugins.Plugin, 0, len(b.Plugins))
+	for _, p := range b.Plugins {
+		switch t := p.(type) {
+		case NonAppNeeder:
+			if isBuffalo {
+				continue
+			}
+		case AppNeeder:
+			if !isBuffalo {
+				continue
+			}
+		case AvailabilityChecker:
+			if !t.PluginAvailable(root) {
+				continue
+			}
+		}
+		plugs = append(plugs, p)
 	}
 
-	if _, err := os.Stat(filepath.Join(root, ".bzr")); err == nil {
-		b.Plugins = append(b.Plugins, bzr.Plugins()...)
-	}
+	b.Plugins = plugs
 
 	sort.Slice(b.Plugins, func(i, j int) bool {
 		return b.Plugins[i].PluginName() < b.Plugins[j].PluginName()

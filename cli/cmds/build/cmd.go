@@ -38,6 +38,8 @@ type Cmd struct {
 	flags     *pflag.FlagSet
 }
 
+func (cmd *Cmd) NeedsBuffaloApp() {}
+
 func (cmd *Cmd) WithPlugins(f plugins.Feeder) {
 	cmd.pluginsFn = f
 }

@@ -7,6 +7,6 @@ test:
 	go mod tidy -v
 
 cov:
-	go test -short -coverprofile cover.out -tags "sqlite" ./...
+	go test -covermode=count -short -coverprofile cover.out -tags "sqlite" ./...
 	go tool cover -html cover.out
 	go mod tidy -v

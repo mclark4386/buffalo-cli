@@ -12,3 +12,21 @@ type Needer = plugins.Needer
 type StderrNeeder = plugio.ErrNeeder
 type StdinNeeder = plugio.InNeeder
 type StdoutNeeder = plugio.OutNeeder
+
+type AvailabilityChecker interface {
+	PluginAvailable(root string) bool
+}
+
+// AppNeeder plugins will only be available inside
+// applications that require buffalo.
+type AppNeeder interface {
+	plugins.Plugin
+	NeedsBuffaloApp()
+}
+
+// NonAppNeeder plugins will be available
+// outside of buffalo applications
+type NonAppNeeder interface {
+	plugins.Plugin
+	NoBuffaloApp()
+}

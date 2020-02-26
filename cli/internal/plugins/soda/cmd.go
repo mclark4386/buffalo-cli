@@ -31,3 +31,5 @@ func (Cmd) Main(ctx context.Context, root string, args []string) error {
 	cmd.RootCmd.SetArgs(args)
 	return cmd.RootCmd.Execute()
 }
+
+func (Cmd) NeedsBuffaloApp() {}
