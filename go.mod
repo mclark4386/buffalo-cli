@@ -17,7 +17,7 @@ require (
 	github.com/gobuffalo/nulls v0.2.0 // indirect
 	github.com/gobuffalo/packd v1.0.0 // indirect
 	github.com/gobuffalo/packr/v2 v2.7.1
-	github.com/gobuffalo/plugins v0.0.0-20200214155356-5518e8e107be
+	github.com/gobuffalo/plugins v0.0.0-20200228172927-8cb52838b7cd
 	github.com/gobuffalo/plush v3.8.3+incompatible
 	github.com/gobuffalo/pop v4.13.1+incompatible
 	github.com/gobuffalo/pop/v5 v5.0.8

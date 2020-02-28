@@ -21,8 +21,6 @@ func (Cmd) CmdName() string {
 	return "new"
 }
 
-func (Cmd) NoBuffaloApp() {}
-
 func (c *Cmd) Main(ctx context.Context, root string, args []string) error {
 	return nil
 }

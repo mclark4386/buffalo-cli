@@ -3,7 +3,6 @@ package cli
 import (
 	"os"
 	"path/filepath"
-	"sort"
 
 	"github.com/gobuffalo/buffalo-cli/v2/cli/cmds"
 	"github.com/gobuffalo/buffalo-cli/v2/cli/internal/clifix"
@@ -22,6 +21,7 @@ import (
 	"github.com/gobuffalo/buffalo-cli/v2/cli/internal/plugins/refresh"
 	"github.com/gobuffalo/buffalo-cli/v2/cli/internal/plugins/soda"
 	"github.com/gobuffalo/buffalo-cli/v2/cli/internal/plugins/webpack"
+	"github.com/gobuffalo/buffalo-cli/v2/meta"
 	"github.com/gobuffalo/plugins"
 	"github.com/gobuffalo/plugins/plugcmd"
 	"github.com/gobuffalo/plugins/plugprint"
@@ -35,12 +35,14 @@ var _ plugprint.Describer = &Buffalo{}
 // Buffalo represents the `buffalo` cli.
 type Buffalo struct {
 	plugins.Plugins
+	root string
 }
 
+// TODO move to the generated application code
+// once packages are no longer internal
 func insidePlugins(root string) []plugins.Plugin {
 	var plugs []plugins.Plugin
 
-	plugs = append(plugs, cmds.InsidePlugins()...)
 	plugs = append(plugs, clifix.Plugins()...)
 	plugs = append(plugs, fizz.Plugins()...)
 	plugs = append(plugs, flect.Plugins()...)
@@ -69,55 +71,23 @@ func insidePlugins(root string) []plugins.Plugin {
 	return plugs
 }
 
-func outsidePlugins(root string) []plugins.Plugin {
-	var plugs []plugins.Plugin
-	plugs = append(plugs, cmds.OutsidePlugins()...)
-	return plugs
-}
-
 func NewFromRoot(root string) (*Buffalo, error) {
-	b := &Buffalo{}
-
-	isBuffalo := IsBuffalo(root)
-
-	pfn := func() []plugins.Plugin {
-		return b.Plugins
+	b := &Buffalo{
+		root: root,
 	}
 
-	if isBuffalo {
+	b.Plugins = append(b.Plugins, cmds.AvailablePlugins(root)...)
+
+	if meta.IsBuffalo(root) {
 		b.Plugins = append(b.Plugins, insidePlugins(root)...)
-	} else {
-		b.Plugins = append(b.Plugins, outsidePlugins(root)...)
 	}
 
-	plugs := make([]plugins.Plugin, 0, len(b.Plugins))
-	for _, p := range b.Plugins {
-		switch t := p.(type) {
-		case NonAppNeeder:
-			if isBuffalo {
-				continue
-			}
-		case AppNeeder:
-			if !isBuffalo {
-				continue
-			}
-		case AvailabilityChecker:
-			if !t.PluginAvailable(root) {
-				continue
-			}
-		}
-		plugs = append(plugs, p)
-	}
-
+	// pre scope the plugins to thin the initial set
+	plugs := b.ScopedPlugins()
+	plugins.Sort(plugs)
 	b.Plugins = plugs
 
-	sort.Slice(b.Plugins, func(i, j int) bool {
-		return b.Plugins[i].PluginName() < b.Plugins[j].PluginName()
-	})
-
-	pfn = func() []plugins.Plugin {
-		return b.Plugins
-	}
+	pfn := b.ScopedPlugins
 
 	for _, b := range b.Plugins {
 		f, ok := b.(plugins.Needer)
@@ -139,7 +109,18 @@ func New() (*Buffalo, error) {
 }
 
 func (b Buffalo) ScopedPlugins() []plugins.Plugin {
-	return b.Plugins
+	root := b.root
+	plugs := make([]plugins.Plugin, 0, len(b.Plugins))
+	for _, p := range b.Plugins {
+		switch t := p.(type) {
+		case AvailabilityChecker:
+			if !t.PluginAvailable(root) {
+				continue
+			}
+		}
+		plugs = append(plugs, p)
+	}
+	return plugs
 }
 
 func (b Buffalo) SubCommands() []plugins.Plugin {
