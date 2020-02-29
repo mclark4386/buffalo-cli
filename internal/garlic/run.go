@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/gobuffalo/buffalo-cli/v2/cli"
+	"github.com/gobuffalo/plugins/plugio"
 	"github.com/markbates/safe"
 )
 
@@ -24,9 +25,9 @@ func Run(ctx context.Context, root string, args []string) error {
 	bargs = append(bargs, args...)
 
 	cmd := exec.CommandContext(ctx, "go", bargs...)
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	cmd.Stdin = plugio.Stdin()
+	cmd.Stdout = plugio.Stdout()
+	cmd.Stderr = plugio.Stderr()
 	err := safe.RunE(func() error {
 		return cmd.Run()
 	})
