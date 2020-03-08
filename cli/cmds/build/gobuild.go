@@ -2,7 +2,6 @@ package build
 
 import (
 	"context"
-	"fmt"
 	"os/exec"
 	"path/filepath"
 	"runtime"
@@ -13,8 +12,8 @@ import (
 	"github.com/markbates/safe"
 )
 
-func (bc *Cmd) GoCmd(ctx context.Context, root string) (*exec.Cmd, error) {
-	buildArgs := []string{"build"}
+func (bc *Cmd) buildArgs(root string) ([]string, error) {
+	args := []string{"build"}
 
 	info, err := here.Dir(root)
 	if err != nil {
@@ -34,22 +33,13 @@ func (bc *Cmd) GoCmd(ctx context.Context, root string) (*exec.Cmd, error) {
 	} else {
 		bin = strings.TrimSuffix(bin, ".exe")
 	}
-	buildArgs = append(buildArgs, "-o", bin)
+	args = append(args, "-o", bin)
 
 	if len(bc.Mod) != 0 {
-		buildArgs = append(buildArgs, "-mod", bc.Mod)
+		args = append(args, "-mod", bc.Mod)
 	}
 
-	buildArgs = append(buildArgs, bc.BuildFlags...)
-
-	tags, err := bc.buildTags(ctx, root)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(tags) > 0 {
-		buildArgs = append(buildArgs, "-tags", strings.Join(tags, " "))
-	}
+	args = append(args, bc.BuildFlags...)
 
 	flags := []string{}
 
@@ -61,55 +51,38 @@ func (bc *Cmd) GoCmd(ctx context.Context, root string) (*exec.Cmd, error) {
 	if len(bc.LDFlags) > 0 {
 		flags = append(flags, bc.LDFlags)
 	}
+
 	if len(flags) > 0 {
-		buildArgs = append(buildArgs, "-ldflags", strings.Join(flags, " "))
+		args = append(args, "-ldflags", strings.Join(flags, " "))
 	}
 
-	cmd := exec.CommandContext(ctx, "go", buildArgs...)
+	for _, p := range bc.ScopedPlugins() {
+		if bt, ok := p.(BuildArger); ok {
+			args = bt.GoBuildArgs(args)
+		}
+	}
 
-	plugs := bc.ScopedPlugins()
-	cmd.Stdout = plugio.Stdout(plugs...)
-	cmd.Stderr = plugio.Stderr(plugs...)
-	cmd.Stdin = plugio.Stdin(plugs...)
-
-	return cmd, nil
+	return args, nil
 }
 
-func (cmd *Cmd) buildTags(ctx context.Context, root string) ([]string, error) {
-	var tags []string
-	if len(cmd.Tags) > 0 {
-		tags = append(tags, cmd.Tags)
-	}
-
-	for _, p := range cmd.ScopedPlugins() {
-		t, ok := p.(Tagger)
-		if !ok {
-			continue
-		}
-		bt, err := t.BuildTags(ctx, root)
-		if err != nil {
-			return nil, err
-		}
-		tags = append(tags, bt...)
-	}
-
-	return tags, nil
-}
-
-func (bc *Cmd) build(ctx context.Context, root string, args []string) error {
-	cmd, err := bc.GoCmd(ctx, root)
+func (bc *Cmd) build(ctx context.Context, root string) error {
+	buildArgs, err := bc.buildArgs(root)
 	if err != nil {
 		return err
 	}
-	fmt.Println(cmd.Args)
 
-	for _, p := range bc.ScopedPlugins() {
-		if br, ok := p.(Runner); ok {
+	plugs := bc.ScopedPlugins()
+	for _, p := range plugs {
+		if br, ok := p.(GoBuilder); ok {
 			return safe.RunE(func() error {
-				return br.RunBuild(ctx, cmd)
+				return br.GoBuild(ctx, root, buildArgs)
 			})
 		}
 	}
 
+	cmd := exec.CommandContext(ctx, "go", buildArgs...)
+	cmd.Stdin = plugio.Stdin(plugs...)
+	cmd.Stdout = plugio.Stdout(plugs...)
+	cmd.Stderr = plugio.Stderr(plugs...)
 	return cmd.Run()
 }

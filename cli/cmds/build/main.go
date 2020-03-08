@@ -3,6 +3,8 @@ package build
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/gobuffalo/here"
 	"github.com/gobuffalo/plugins"
@@ -39,15 +41,6 @@ func (bc *Cmd) Main(ctx context.Context, root string, args []string) error {
 		return plugprint.Print(plugio.Stdout(bc.ScopedPlugins()...), bc)
 	}
 
-	type builder func(ctx context.Context, root string, args []string) error
-
-	var build builder = bc.build
-
-	info, err := here.Dir(root)
-	if err != nil {
-		return err
-	}
-
 	plugs := bc.ScopedPlugins()
 
 	if len(flags.Args()) > 0 {
@@ -65,11 +58,29 @@ func (bc *Cmd) Main(ctx context.Context, root string, args []string) error {
 		if !ok {
 			return fmt.Errorf("unknown builder %q", name)
 		}
-		build = b.Build
-		args = args[1:]
+		return b.Build(ctx, root, args[1:])
+	}
+
+	info, err := here.Dir(root)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(">>>TODO cli/cmds/build/main.go:53: info ", info)
+	if info.Name != "main" {
+		fp := filepath.Join(root, "cmd", info.Name)
+		if _, err := os.Stat(fp); err == nil {
+			info, err = here.Dir(fp)
+			if err != nil {
+				return err
+			}
+			root = fp
+			os.Chdir(root)
+		}
 	}
 
 	if err = bc.beforeBuild(ctx, root, args); err != nil {
+		err = fmt.Errorf("before build %w", err)
 		return bc.afterBuild(ctx, root, args, err)
 	}
 
@@ -89,14 +100,22 @@ func (bc *Cmd) Main(ctx context.Context, root string, args []string) error {
 	}
 
 	err = safe.RunE(func() error {
-		return bc.pack(ctx, info, plugs)
+		err := bc.pack(ctx, info, plugs)
+		if err != nil {
+			err = fmt.Errorf("pack error %w", err)
+		}
+		return nil
 	})
 	if err != nil {
 		return bc.afterBuild(ctx, root, args, err)
 	}
 
 	err = safe.RunE(func() error {
-		return build(ctx, root, args)
+		err := bc.build(ctx, root)
+		if err != nil {
+			err = fmt.Errorf("build error %w", err)
+		}
+		return nil
 	})
 
 	return bc.afterBuild(ctx, root, args, err)
@@ -107,8 +126,13 @@ func (cmd *Cmd) beforeBuild(ctx context.Context, root string, args []string) err
 	plugs := cmd.ScopedPlugins()
 	for _, p := range plugs {
 		if bb, ok := p.(BeforeBuilder); ok {
+			fmt.Println(">>>TODO cli/cmds/build/main.go:133: p.PluginName() ", p.PluginName())
 			err := safe.RunE(func() error {
-				return bb.BeforeBuild(ctx, root, args)
+				err := bb.BeforeBuild(ctx, root, args)
+				if err != nil {
+					return fmt.Errorf("%s: %w", p.PluginName(), err)
+				}
+				return nil
 			})
 			if err != nil {
 				return err

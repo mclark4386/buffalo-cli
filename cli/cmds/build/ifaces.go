@@ -3,7 +3,6 @@ package build
 import (
 	"context"
 	"flag"
-	"os/exec"
 
 	"github.com/gobuffalo/plugins"
 	"github.com/gobuffalo/plugins/plugio"
@@ -62,14 +61,24 @@ type Importer interface {
 	BuildImports(ctx context.Context, root string) ([]string, error)
 }
 
-type Runner interface {
-	plugins.Plugin
-	RunBuild(ctx context.Context, cmd *exec.Cmd) error
+type GoBuilder interface {
+	// GoBuild will be called to build, and execute, the
+	// presented context and args.
+	// The first plugin to receive this call will be the
+	// only to answer it.
+	GoBuild(ctx context.Context, root string, args []string) error
 }
 
-type Tagger interface {
-	plugins.Plugin
-	BuildTags(ctx context.Context, root string) ([]string, error)
+type BuildArger interface {
+	// GoBuildArgs receives the current list
+	// and returns either the same list, or
+	// a modified version of the arguments.
+	// Implementations are responsible for ensuring
+	// that the arguments returned are "valid"
+	// arguments for the `go build` command.
+	GoBuildArgs(args []string) []string
 }
 
 type Stdouter = plugio.Outer
+type Stdiner = plugio.Inner
+type Stderrer = plugio.Errer

@@ -38,8 +38,6 @@ type Cmd struct {
 	flags     *pflag.FlagSet
 }
 
-func (cmd *Cmd) NeedsBuffaloApp() {}
-
 func (cmd *Cmd) WithPlugins(f plugins.Feeder) {
 	cmd.pluginsFn = f
 }
@@ -75,7 +73,7 @@ func (bc *Cmd) ScopedPlugins() []plugins.Plugin {
 	var builders []plugins.Plugin
 	for _, p := range plugs {
 		switch p.(type) {
-		case Tagger:
+		case BuildArger:
 			builders = append(builders, p)
 		case Builder:
 			builders = append(builders, p)
@@ -97,9 +95,13 @@ func (bc *Cmd) ScopedPlugins() []plugins.Plugin {
 			builders = append(builders, p)
 		case Importer:
 			builders = append(builders, p)
-		case Runner:
+		case GoBuilder:
 			builders = append(builders, p)
 		case Stdouter:
+			plugs = append(plugs, p)
+		case Stdiner:
+			plugs = append(plugs, p)
+		case Stderrer:
 			plugs = append(plugs, p)
 		}
 	}
