@@ -20,7 +20,7 @@ func (bc *Cmd) buildArgs(root string) ([]string, error) {
 		return nil, err
 	}
 
-	bin := bc.Bin
+	bin := bc.bin
 	if len(bin) == 0 {
 		bin = filepath.Join("bin", info.Name)
 	}
@@ -35,21 +35,21 @@ func (bc *Cmd) buildArgs(root string) ([]string, error) {
 	}
 	args = append(args, "-o", bin)
 
-	if len(bc.Mod) != 0 {
-		args = append(args, "-mod", bc.Mod)
+	if len(bc.mod) != 0 {
+		args = append(args, "-mod", bc.mod)
 	}
 
-	args = append(args, bc.BuildFlags...)
+	args = append(args, bc.buildFlags...)
 
 	flags := []string{}
 
-	if bc.Static {
+	if bc.static {
 		flags = append(flags, "-linkmode external", "-extldflags \"-static\"")
 	}
 
 	// Add any additional ldflags passed in to the build args
-	if len(bc.LDFlags) > 0 {
-		flags = append(flags, bc.LDFlags)
+	if len(bc.ldFlags) > 0 {
+		flags = append(flags, bc.ldFlags)
 	}
 
 	if len(flags) > 0 {

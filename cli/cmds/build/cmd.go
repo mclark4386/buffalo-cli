@@ -17,21 +17,21 @@ var _ plugprint.FlagPrinter = &Cmd{}
 
 type Cmd struct {
 	// Mod is the -mod flag
-	Mod string
+	mod string
 	// Static sets the following flags for the final `go build` command:
 	// -linkmode external
 	// -extldflags "-static"
-	Static bool
+	static bool
 	// Environment the binary is meant for. defaults to "development"
-	Environment string
+	environment string
 	// LDFlags to be passed to the final `go build` command
-	LDFlags string
+	ldFlags string
 	// BuildFlags to be passed to the final `go build` command
-	BuildFlags             []string
-	Tags                   string
-	Bin                    string
-	Verbose                bool
-	SkipTemplateValidation bool
+	buildFlags             []string
+	tags                   string
+	bin                    string
+	verbose                bool
+	skipTemplateValidation bool
 
 	help      bool
 	pluginsFn plugins.Feeder

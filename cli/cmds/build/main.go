@@ -84,7 +84,7 @@ func (bc *Cmd) Main(ctx context.Context, root string, args []string) error {
 		return bc.afterBuild(ctx, root, args, err)
 	}
 
-	if !bc.SkipTemplateValidation {
+	if !bc.skipTemplateValidation {
 		for _, p := range plugs {
 			tv, ok := p.(TemplatesValidator)
 			if !ok {
@@ -126,7 +126,6 @@ func (cmd *Cmd) beforeBuild(ctx context.Context, root string, args []string) err
 	plugs := cmd.ScopedPlugins()
 	for _, p := range plugs {
 		if bb, ok := p.(BeforeBuilder); ok {
-			fmt.Println(">>>TODO cli/cmds/build/main.go:133: p.PluginName() ", p.PluginName())
 			err := safe.RunE(func() error {
 				err := bb.BeforeBuild(ctx, root, args)
 				if err != nil {
