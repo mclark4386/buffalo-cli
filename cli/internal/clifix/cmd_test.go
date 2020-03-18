@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_Fixer_Fix(t *testing.T) {
+func Test_Cmd_Fix(t *testing.T) {
 	r := require.New(t)
 
 	dir, err := ioutil.TempDir("", "")
@@ -24,7 +24,7 @@ func Test_Fixer_Fix(t *testing.T) {
 	ctx := context.Background()
 	var args []string
 
-	fixer := &Fixer{}
+	fixer := &Cmd{}
 	err = fixer.Fix(ctx, dir, args)
 	r.NoError(err)
 

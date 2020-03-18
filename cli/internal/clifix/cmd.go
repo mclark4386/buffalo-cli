@@ -9,22 +9,22 @@ import (
 	"github.com/gobuffalo/plugins/plugcmd"
 )
 
-var _ plugins.Plugin = &Fixer{}
-var _ plugcmd.Namer = &Fixer{}
-var _ fix.Fixer = &Fixer{}
+var _ plugins.Plugin = &Cmd{}
+var _ plugcmd.Namer = &Cmd{}
+var _ fix.Fixer = &Cmd{}
 
-type Fixer struct {
+type Cmd struct {
 }
 
-func (*Fixer) PluginName() string {
+func (*Cmd) PluginName() string {
 	return "cli/fixer"
 }
 
-func (*Fixer) CmdName() string {
+func (*Cmd) CmdName() string {
 	return "cli"
 }
 
-func (fixer *Fixer) Fix(ctx context.Context, root string, args []string) error {
+func (fixer *Cmd) Fix(ctx context.Context, root string, args []string) error {
 	g := &cligen.Generator{}
 	return g.Generate(ctx, root, args)
 }
