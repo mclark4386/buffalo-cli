@@ -66,7 +66,6 @@ func (bc *Cmd) Main(ctx context.Context, root string, args []string) error {
 		return err
 	}
 
-	fmt.Println(">>>TODO cli/cmds/build/main.go:53: info ", info)
 	if info.Name != "main" {
 		fp := filepath.Join(root, "cmd", info.Name)
 		if _, err := os.Stat(fp); err == nil {

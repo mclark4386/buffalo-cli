@@ -149,7 +149,7 @@ func (dev *Developer) buildTags(ctx context.Context, root string) ([]string, err
 		if !ok {
 			continue
 		}
-		bt, err := t.BuildTags(ctx, root)
+		bt, err := t.RefreshTags(ctx, root)
 		if err != nil {
 			return nil, err
 		}

@@ -25,26 +25,26 @@ func Test_Cmd_GoBuilder(t *testing.T) {
 		args []string
 		exp  []string
 	}{
-		{exp: []string{"go", "build", "-o", cli("bin", "build")}},
+		{exp: []string{"build", "-o", cli("bin", "build")}},
 		{
 			args: []string{"-o", filepath.Join("bin", "foo")},
-			exp:  []string{"go", "build", "-o", cli("bin", "foo")},
+			exp:  []string{"build", "-o", cli("bin", "foo")},
 		},
 		{
-			args: []string{"-mod", "vendor"},
-			exp:  []string{"go", "build", "-mod", "vendor", "-o", cli("bin", "build")},
+			args: []string{"--mod", "vendor"},
+			exp:  []string{"build", "-o", cli("bin", "build"), "-mod", "vendor"},
 		},
 		{
-			args: []string{"-tags", "a b c"},
-			exp:  []string{"go", "build", "-tags", "abc", "-o", cli("bin", "build")},
+			args: []string{"--tags", "a b c"},
+			exp:  []string{"build", "-o", cli("bin", "build"), "-tags", "a b c"},
 		},
 		{
-			args: []string{"-static"},
-			exp:  []string{"go", "build", "-o", cli("bin", "build"), "-ldflags", "-linkmode external -extldflags \"-static\""},
+			args: []string{"--static"},
+			exp:  []string{"build", "-o", cli("bin", "build"), "-ldflags", "-linkmode external -extldflags \"-static\""},
 		},
 		{
-			args: []string{"-ldflags", "linky"},
-			exp:  []string{"go", "build", "-o", cli("bin", "build"), "-ldflags", "-linkmode external -extldflags \"-static\""},
+			args: []string{"--ldflags", "linky"},
+			exp:  []string{"build", "-o", cli("bin", "build"), "-ldflags", "linky"},
 		},
 	}
 
@@ -66,7 +66,7 @@ func Test_Cmd_GoBuilder(t *testing.T) {
 			})
 
 			ctx := context.Background()
-			err := bc.Main(ctx, "", tt.args)
+			err := bc.Main(ctx, ".", tt.args)
 			r.NoError(err)
 
 			r.Equal(tt.exp, act)
