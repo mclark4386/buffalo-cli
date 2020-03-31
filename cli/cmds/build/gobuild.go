@@ -9,7 +9,6 @@ import (
 
 	"github.com/gobuffalo/here"
 	"github.com/gobuffalo/plugins/plugio"
-	"github.com/markbates/safe"
 )
 
 func (bc *Cmd) buildArgs(ctx context.Context, root string) ([]string, error) {
@@ -87,17 +86,17 @@ func (bc *Cmd) build(ctx context.Context, root string) error {
 	}
 
 	plugs := bc.ScopedPlugins()
-	for _, p := range plugs {
-		if br, ok := p.(GoBuilder); ok {
-			return safe.RunE(func() error {
-				return br.GoBuild(ctx, root, buildArgs)
-			})
-		}
-	}
-
 	cmd := exec.CommandContext(ctx, "go", buildArgs...)
 	cmd.Stdin = plugio.Stdin(plugs...)
 	cmd.Stdout = plugio.Stdout(plugs...)
 	cmd.Stderr = plugio.Stderr(plugs...)
+
+	for _, p := range plugs {
+		if br, ok := p.(GoBuilder); ok {
+
+			return br.GoBuild(ctx, root, cmd)
+		}
+	}
+
 	return cmd.Run()
 }
