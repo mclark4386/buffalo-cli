@@ -14,7 +14,7 @@ import (
 func (cmd *Cmd) Main(ctx context.Context, root string, args []string) error {
 	flags := cmd.Flags()
 	if err := flags.Parse(args); err != nil {
-		return err
+		return plugins.Wrap(cmd, err)
 	}
 
 	if len(flags.Args()) > 0 {
@@ -33,7 +33,7 @@ func (cmd *Cmd) Main(ctx context.Context, root string, args []string) error {
 
 func (cmd *Cmd) run(ctx context.Context, root string, args []string) error {
 	if err := cmd.beforeSetup(ctx, root, args); err != nil {
-		return err
+		return plugins.Wrap(cmd, err)
 	}
 
 	for _, p := range cmd.ScopedPlugins() {
@@ -52,7 +52,7 @@ func (cmd *Cmd) beforeSetup(ctx context.Context, root string, args []string) err
 	for _, p := range plugs {
 		if bb, ok := p.(BeforeSetuper); ok {
 			if err := bb.BeforeSetup(ctx, root, args); err != nil {
-				return err
+				return plugins.Wrap(cmd, err)
 			}
 		}
 	}
@@ -64,7 +64,7 @@ func (cmd *Cmd) afterSetup(ctx context.Context, root string, args []string, err 
 	for _, p := range plugs {
 		if bb, ok := p.(AfterSetuper); ok {
 			if err := bb.AfterSetup(ctx, root, args, err); err != nil {
-				return err
+				return plugins.Wrap(cmd, err)
 			}
 		}
 	}
@@ -99,7 +99,7 @@ func (cmd *Cmd) SubCommand(ctx context.Context, root string, name string, args [
 
 	d, ok := p.(Setuper)
 	if !ok {
-		return fmt.Errorf("%s unknown command", name)
+		return plugins.Wrap(cmd, fmt.Errorf("%s unknown command", name))
 	}
 
 	return d.Setup(ctx, root, args[1:])

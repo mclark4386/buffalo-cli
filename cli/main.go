@@ -9,7 +9,6 @@ import (
 	"github.com/gobuffalo/plugins/plugfind"
 	"github.com/gobuffalo/plugins/plugio"
 	"github.com/gobuffalo/plugins/plugprint"
-	"github.com/markbates/safe"
 	"github.com/spf13/pflag"
 )
 
@@ -19,7 +18,6 @@ func (b *Buffalo) Main(ctx context.Context, root string, args []string) error {
 	flags := pflag.NewFlagSet(b.String(), pflag.ContinueOnError)
 	flags.BoolVarP(&help, "help", "h", false, "print this help")
 	flags.Parse(args)
-
 	pfn := func() []plugins.Plugin {
 		return b.Plugins
 	}
@@ -59,10 +57,11 @@ func (b *Buffalo) Main(ctx context.Context, root string, args []string) error {
 
 	c, ok := p.(Commander)
 	if !ok {
-		return fmt.Errorf("unknown command %s", name)
+		return plugins.Wrap(b, fmt.Errorf("unknown command %s", name))
 	}
 
-	return safe.RunE(func() error {
-		return c.Main(ctx, root, args[1:])
-	})
+	if err := c.Main(ctx, root, args[1:]); err != nil {
+		return plugins.Wrap(b, err)
+	}
+	return nil
 }
