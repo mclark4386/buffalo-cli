@@ -23,6 +23,7 @@ func Feeder_Test() []plugins.Plugin {
 type TestNeeder struct {
 	Testy               *testing.T
 	ExpectedPluginCount int
+	Error               error
 }
 
 func (tn TestNeeder) PluginName() string {
@@ -33,6 +34,10 @@ func (tn TestNeeder) WithPlugins(feeder plugins.Feeder) {
 	r := require.New(tn.Testy)
 	ps := feeder()
 	r.Equal(len(ps), tn.ExpectedPluginCount)
+}
+
+func (tn TestNeeder) SetStdin(io.Reader) error {
+	return tn.Error
 }
 
 func Test_TestNeeder(t *testing.T) {

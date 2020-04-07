@@ -87,6 +87,21 @@ func Test_Buffalo_FailingPlugins(t *testing.T) {
 	err = b.Main(ctx, "", args)
 	r.Error(err)
 	r.Equal("Bad Err", err.Error())
+
+	//Bad Combo
+	b = &Buffalo{
+		Plugins: plugins.Plugins{
+			TestNeeder{
+				Testy:               t,
+				ExpectedPluginCount: 1,
+				Error:               errors.New("Bad Combo"),
+			},
+		},
+	}
+
+	err = b.Main(ctx, "", args)
+	r.Error(err)
+	r.Equal("Bad Combo", err.Error())
 }
 
 func Test_Buffalo_Main_SubCommand(t *testing.T) {
