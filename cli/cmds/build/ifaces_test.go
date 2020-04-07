@@ -64,6 +64,9 @@ func (b *afterBuilder) PluginName() string {
 }
 
 func (b *afterBuilder) AfterBuild(ctx context.Context, root string, args []string, err error) error {
+	if b.err != nil {
+		return b.err
+	}
 	b.args = args
 	b.err = err
 	return err
