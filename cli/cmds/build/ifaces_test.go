@@ -3,6 +3,7 @@ package build
 import (
 	"context"
 	"flag"
+	"io"
 	"os/exec"
 
 	"github.com/spf13/pflag"
@@ -207,4 +208,41 @@ func (bladeRunner) PluginName() string {
 func (b *bladeRunner) RunBuild(ctx context.Context, cmd *exec.Cmd) error {
 	b.cmd = cmd
 	return b.err
+}
+
+var _ Tagger = &buildTagger{}
+
+type buildTagger struct {
+	name string
+	tags []string
+	err  error
+}
+
+func (b *buildTagger) PluginName() string {
+	if len(b.name) == 0 {
+		return "buildTagger"
+	}
+	return b.name
+}
+
+func (b *buildTagger) BuildTags(ctx context.Context, root string) ([]string, error) {
+	return b.tags, b.err
+}
+
+var _ Stdouter = &buildStdouter{}
+
+type buildStdouter struct {
+	name   string
+	writer io.Writer
+}
+
+func (b *buildStdouter) PluginName() string {
+	if len(b.name) == 0 {
+		return "buildStdouter"
+	}
+	return b.name
+}
+
+func (b *buildStdouter) Stdout() io.Writer {
+	return b.writer
 }
