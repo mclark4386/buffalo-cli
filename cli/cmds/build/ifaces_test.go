@@ -246,3 +246,73 @@ func (b *buildStdouter) PluginName() string {
 func (b *buildStdouter) Stdout() io.Writer {
 	return b.writer
 }
+
+var _ Builder = &buildBuilder{}
+
+type buildBuilder struct {
+	name string
+	root string
+	err  error
+}
+
+func (b *buildBuilder) PluginName() string {
+	if len(b.name) == 0 {
+		return "buildBuilder"
+	}
+	return b.name
+}
+
+func (b *buildBuilder) Build(ctx context.Context, root string, args []string) error {
+	b.root = root
+	return b.err
+}
+
+var _ Namer = &buildNamer{}
+
+type buildNamer struct {
+	name    string
+	cmdName string
+	root    string
+	err     error
+}
+
+func (b *buildNamer) PluginName() string {
+	if len(b.name) == 0 {
+		return "buildNamer"
+	}
+	return b.name
+}
+
+func (b *buildNamer) Build(ctx context.Context, root string, args []string) error {
+	b.root = root
+	return b.err
+}
+
+func (b *buildNamer) CmdName() string {
+	return b.cmdName
+}
+
+var _ Aliaser = &buildAliaser{}
+
+type buildAliaser struct {
+	name    string
+	aliases []string
+	root    string
+	err     error
+}
+
+func (b *buildAliaser) PluginName() string {
+	if len(b.name) == 0 {
+		return "buildAliaser"
+	}
+	return b.name
+}
+
+func (b *buildAliaser) Build(ctx context.Context, root string, args []string) error {
+	b.root = root
+	return b.err
+}
+
+func (b *buildAliaser) CmdAliases() []string {
+	return b.aliases
+}
