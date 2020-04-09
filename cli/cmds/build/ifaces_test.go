@@ -316,3 +316,14 @@ func (b *buildAliaser) Build(ctx context.Context, root string, args []string) er
 func (b *buildAliaser) CmdAliases() []string {
 	return b.aliases
 }
+
+var _ io.Writer = &badWriter{}
+
+type badWriter struct {
+	n   int
+	err error
+}
+
+func (bw *badWriter) Write(p []byte) (n int, err error) {
+	return bw.n, bw.err
+}
