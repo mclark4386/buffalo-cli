@@ -4,11 +4,13 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
 	"testing"
 
+	"github.com/gobuffalo/here"
 	"github.com/gobuffalo/plugins"
 	"github.com/stretchr/testify/require"
 )
@@ -189,5 +191,73 @@ func Test_MainFile_generateNewMain_Errs(t *testing.T) {
 }
 
 //TODO: Test BeforeBuild
+func Test_MainFile_BeforeBuild(t *testing.T) {
+	r := require.New(t)
+
+	root := filepath.Join(".", "coke")
+	println(root)
+	current_root, err := os.Getwd()
+	r.NoError(err)
+
+	err, ref := setupProject(root, t)
+	defer teardownProject(root, current_root)
+	r.NoError(err)
+
+	plugs := plugins.Plugins{
+		&buildImporter{
+			imports: []string{
+				path.Join(ref.ImportPath, "actions"),
+			},
+		},
+	}
+	bc := &MainFile{
+		pluginsFn: func() []plugins.Plugin {
+			return plugs
+		},
+		withFallthroughFn: func() bool { return true },
+	}
+
+	ctx := context.Background()
+	var args []string
+	err = bc.BeforeBuild(ctx, root, args)
+	r.NoError(err)
+}
+
 //TODO: Test AfterBuild
 //TODO: Test renameMain
+
+func setupProject(root string, t *testing.T) (error, here.Info) {
+	if err := os.MkdirAll(root, os.ModeDir|os.ModePerm); err != nil {
+		return err, here.Info{}
+	}
+	if err := os.Chdir(root); err != nil {
+		return err, here.Info{}
+	}
+
+	//create files
+	if err := ioutil.WriteFile("main.go", []byte(maingofile), 0660); err != nil {
+		return err, here.Info{}
+	}
+	if err := ioutil.WriteFile("go.mod", []byte(gomodfile), 0660); err != nil {
+		return err, here.Info{}
+	}
+	return nil, newRef(t, root)
+}
+
+func teardownProject(root, newRoot string) {
+	os.Chdir(newRoot)
+	os.RemoveAll(root)
+}
+
+const maingofile = `
+package main
+
+func main() {
+	print("go time!")
+}
+`
+
+const gomodfile = `
+module github.com/markbates/coke
+
+go 1.13`
