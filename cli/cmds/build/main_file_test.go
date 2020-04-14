@@ -190,16 +190,14 @@ func Test_MainFile_generateNewMain_Errs(t *testing.T) {
 	r.Contains(err.Error(), "Bad Writer")
 }
 
-//TODO: Test BeforeBuild
 func Test_MainFile_BeforeBuild(t *testing.T) {
 	r := require.New(t)
 
 	root := filepath.Join(".", "coke")
-	println(root)
 	current_root, err := os.Getwd()
 	r.NoError(err)
 
-	err, ref := setupProject(root, t)
+	err, ref := setupProject(root, t, beforemaingofile)
 	defer teardownProject(root, current_root)
 	r.NoError(err)
 
@@ -221,12 +219,152 @@ func Test_MainFile_BeforeBuild(t *testing.T) {
 	var args []string
 	err = bc.BeforeBuild(ctx, root, args)
 	r.NoError(err)
+
+	raw, err := ioutil.ReadFile("main.go")
+	r.NoError(err)
+	r.Contains(string(raw), "func originalMain()")
 }
 
-//TODO: Test AfterBuild
-//TODO: Test renameMain
+func Test_MainFile_BeforeBuild_Err(t *testing.T) {
+	r := require.New(t)
 
-func setupProject(root string, t *testing.T) (error, here.Info) {
+	plugs := plugins.Plugins{}
+	bc := &MainFile{
+		pluginsFn: func() []plugins.Plugin {
+			return plugs
+		},
+		withFallthroughFn: func() bool { return true },
+	}
+
+	//Test not in the folder with main (i.e. this folder)
+	ctx := context.Background()
+	var args []string
+	err := bc.BeforeBuild(ctx, "", args)
+	r.Error(err)
+	r.Contains(err.Error(), "is not a main")
+
+	//Test sending in a plugin with a bad version
+	root := filepath.Join(".", "coke")
+	current_root, err := os.Getwd()
+	r.NoError(err)
+
+	err, _ = setupProject(root, t, beforemaingofile)
+	defer teardownProject(root, current_root)
+	r.NoError(err)
+
+	plugs = plugins.Plugins{
+		&buildVersioner{err: errors.New("Bad Versioner")},
+	}
+	bc = &MainFile{
+		pluginsFn: func() []plugins.Plugin {
+			return plugs
+		},
+		withFallthroughFn: func() bool { return true },
+	}
+
+	err = bc.BeforeBuild(ctx, root, args)
+	r.Error(err)
+	r.Contains(err.Error(), "Bad Versioner")
+
+	// Test error in generate
+	plugs = plugins.Plugins{
+		&buildImporter{err: errors.New("Bad Importer")},
+	}
+	bc = &MainFile{
+		pluginsFn: func() []plugins.Plugin {
+			return plugs
+		},
+		withFallthroughFn: func() bool { return true },
+	}
+
+	err = bc.BeforeBuild(ctx, root, args)
+	r.Error(err)
+	r.Contains(err.Error(), "Bad Importer")
+}
+
+func Test_MainFile_AfterBuild(t *testing.T) {
+	r := require.New(t)
+
+	root := filepath.Join(".", "coke")
+	current_root, err := os.Getwd()
+	r.NoError(err)
+
+	err, _ = setupProject(root, t, aftermaingofile)
+	defer teardownProject(root, current_root)
+	r.NoError(err)
+
+	plugs := plugins.Plugins{}
+	bc := &MainFile{
+		pluginsFn: func() []plugins.Plugin {
+			return plugs
+		},
+		withFallthroughFn: func() bool { return true },
+	}
+
+	ctx := context.Background()
+	var args []string
+	err = bc.AfterBuild(ctx, ".", args, nil)
+	r.NoError(err)
+
+	raw, err := ioutil.ReadFile("main.go")
+	r.NoError(err)
+	r.Contains(string(raw), "func main()")
+}
+
+func Test_MainFile_AfterBuild_Err(t *testing.T) {
+	r := require.New(t)
+	bc := &MainFile{}
+
+	ctx := context.Background()
+	var args []string
+	err := bc.AfterBuild(ctx, "random1370498nc19c", args, nil)
+	r.Error(err)
+	r.Contains(err.Error(), "no such file or directory")
+}
+
+func Test_MainFile_renameMain_err(t *testing.T) {
+	r := require.New(t)
+
+	root := filepath.Join(".", "coke")
+	current_root, err := os.Getwd()
+	r.NoError(err)
+
+	err, _ = setupProject(root, t, aftermaingofile)
+	defer teardownProject(root, current_root)
+	r.NoError(err)
+
+	// Shouldn't be able to rename in a read-only file
+	r.NoError(os.Chmod("main.go", 0444))
+	r.NoError(os.Chdir(current_root))
+
+	bc := &MainFile{}
+
+	info, err := here.Dir(root)
+	r.NoError(err)
+	err = bc.renameMain(info, "originalMain", "main")
+	r.Error(err)
+	r.Contains(err.Error(), "permission denied")
+
+	raw, err := ioutil.ReadFile(filepath.Join(root, "main.go"))
+	r.NoError(err)
+	r.Contains(string(raw), "func originalMain()")
+
+	// cover when the thing to that would be renamed isn't actually a function
+	r.NoError(os.Chmod(filepath.Join(root, "main.go"), 0660))
+	r.NoError(ioutil.WriteFile(filepath.Join(root, "main.go"), []byte(renamemaingofile), 0660))
+
+	info, err = here.Dir(root)
+	r.NoError(err)
+	err = bc.renameMain(info, "originalMain", "main")
+	r.NoError(err)
+
+	raw, err = ioutil.ReadFile(filepath.Join(root, "main.go"))
+	r.NoError(err)
+	r.Contains(string(raw), "func main()")
+
+}
+
+func setupProject(root string, t *testing.T, maincontent string) (error, here.Info) {
 	if err := os.MkdirAll(root, os.ModeDir|os.ModePerm); err != nil {
 		return err, here.Info{}
 	}
@@ -235,7 +373,7 @@ func setupProject(root string, t *testing.T) (error, here.Info) {
 	}
 
 	//create files
-	if err := ioutil.WriteFile("main.go", []byte(maingofile), 0660); err != nil {
+	if err := ioutil.WriteFile("main.go", []byte(maincontent), 0660); err != nil {
 		return err, here.Info{}
 	}
 	if err := ioutil.WriteFile("go.mod", []byte(gomodfile), 0660); err != nil {
@@ -249,12 +387,29 @@ func teardownProject(root, newRoot string) {
 	os.RemoveAll(root)
 }
 
-const maingofile = `
+const beforemaingofile = `
 package main
 
 func main() {
 	print("go time!")
 }
+`
+
+const aftermaingofile = `
+package main
+
+func originalMain() {
+	print("go time!")
+}
+`
+
+const renamemaingofile = `
+package main
+
+var originalMain string = "oops"
+func main(){
+	print(originalMain)
+}	
 `
 
 const gomodfile = `
