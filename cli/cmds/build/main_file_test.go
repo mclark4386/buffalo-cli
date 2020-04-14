@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/gobuffalo/here"
@@ -319,7 +320,11 @@ func Test_MainFile_AfterBuild_Err(t *testing.T) {
 	var args []string
 	err := bc.AfterBuild(ctx, "random1370498nc19c", args, nil)
 	r.Error(err)
-	r.Contains(err.Error(), "no such file or directory")
+	if runtime.GOOS == "windows" {
+		r.Contains(err.Error(), "The system cannot find the path specified")
+	} else {
+		r.Contains(err.Error(), "no such file or directory")
+	}
 }
 
 func Test_MainFile_renameMain_err(t *testing.T) {

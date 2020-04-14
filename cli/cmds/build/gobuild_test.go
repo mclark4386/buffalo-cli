@@ -199,7 +199,11 @@ func Test_Cmd_GoBuild_Build_Err(t *testing.T) {
 	var args []string
 	err := bc.build(ctx, "", args)
 	r.Error(err)
-	r.Contains(err.Error(), "no such file or directory")
+	if runtime.GOOS == "windows" {
+		r.Contains(err.Error(), "The system cannot find the path specified")
+	} else {
+		r.Contains(err.Error(), "no such file or directory")
+	}
 
 	err = bc.build(ctx, ".", args)
 	r.Error(err)

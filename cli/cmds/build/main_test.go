@@ -78,7 +78,11 @@ func Test_Cmd_Main_BadRootErr(t *testing.T) {
 	args := []string{}
 	err := bc.Main(context.Background(), "", args)
 	r.Error(err)
-	r.Contains(err.Error(), "no such file or directory")
+	if runtime.GOOS == "windows" {
+		r.Contains(err.Error(), "The system cannot find the path specified")
+	} else {
+		r.Contains(err.Error(), "no such file or directory")
+	}
 }
 
 func Test_Cmd_Main_SubCommand(t *testing.T) {
