@@ -321,7 +321,7 @@ func Test_MainFile_AfterBuild_Err(t *testing.T) {
 	err := bc.AfterBuild(ctx, "random1370498nc19c", args, nil)
 	r.Error(err)
 	if runtime.GOOS == "windows" {
-		r.Contains(err.Error(), "The system cannot find the path specified")
+		r.Contains(err.Error(), "The system cannot find the file specified")
 	} else {
 		r.Contains(err.Error(), "no such file or directory")
 	}
@@ -348,7 +348,11 @@ func Test_MainFile_renameMain_err(t *testing.T) {
 	r.NoError(err)
 	err = bc.renameMain(info, "originalMain", "main")
 	r.Error(err)
-	r.Contains(err.Error(), "permission denied")
+	if runtime.GOOS == "windows" {
+		r.Contains(err.Error(), "Access is denied.")
+	} else {
+		r.Contains(err.Error(), "permission denied")
+	}
 
 	raw, err := ioutil.ReadFile(filepath.Join(root, "main.go"))
 	r.NoError(err)
